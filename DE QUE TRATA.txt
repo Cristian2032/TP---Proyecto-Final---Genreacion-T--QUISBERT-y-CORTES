@@ -1,0 +1,3 @@
+Nuestro proyecto es un juego de supervivencia donde trata que somos una nave espacial que esta sobreviendo de asteroides
+y tiene que sobrevivir. LOS Elementos que utilizamos son CSS, HTML, React con vite y javaScript ( con algo de programacion
+orientada a objetos)  
