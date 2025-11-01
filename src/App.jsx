@@ -37,6 +37,8 @@ class Ship extends GameObject {
     this.speed = 8;
     this.health = 100;
     this.maxHealth = 100;
+    this.weaponUpgrade = false;
+    this.weaponUpgradeTimer = 0;
   }
 
   moveLeft() {
@@ -57,7 +59,7 @@ class Ship extends GameObject {
 
   draw(ctx) {
     // Cuerpo de la nave
-    ctx.fillStyle = '#60a5fa';
+    ctx.fillStyle = this.weaponUpgrade ? '#a855f7' : '#60a5fa';
     ctx.beginPath();
     ctx.moveTo(this.x + this.width / 2, this.y);
     ctx.lineTo(this.x, this.y + this.height);
@@ -66,7 +68,7 @@ class Ship extends GameObject {
     ctx.fill();
 
     // Cabina
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = this.weaponUpgrade ? '#7c3aed' : '#3b82f6';
     ctx.beginPath();
     ctx.arc(this.x + this.width / 2, this.y + 20, 8, 0, Math.PI * 2);
     ctx.fill();
@@ -75,6 +77,13 @@ class Ship extends GameObject {
     ctx.fillStyle = '#f59e0b';
     ctx.fillRect(this.x + 10, this.y + this.height, 15, 8);
     ctx.fillRect(this.x + this.width - 25, this.y + this.height, 15, 8);
+    
+    // Indicador de mejora de arma
+    if (this.weaponUpgrade) {
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(this.x + 5, this.y + 30, 3, 10);
+      ctx.fillRect(this.x + this.width - 8, this.y + 30, 3, 10);
+    }
   }
 
   takeDamage(amount) {
@@ -82,6 +91,24 @@ class Ship extends GameObject {
     if (this.health <= 0) {
       this.health = 0;
       this.active = false;
+    }
+  }
+  
+  heal(amount) {
+    this.health = Math.min(this.health + amount, this.maxHealth);
+  }
+  
+  upgradeWeapon() {
+    this.weaponUpgrade = true;
+    this.weaponUpgradeTimer = 600; // 10 segundos a 60 FPS
+  }
+  
+  updateWeaponUpgrade() {
+    if (this.weaponUpgrade) {
+      this.weaponUpgradeTimer--;
+      if (this.weaponUpgradeTimer <= 0) {
+        this.weaponUpgrade = false;
+      }
     }
   }
 }
@@ -168,13 +195,15 @@ class Asteroid extends GameObject {
 
 // Clase Nave Enemiga (hereda de GameObject)
 class EnemyShip extends GameObject {
-  constructor(x, y) {
-    super(x, y, 50, 50);
-    this.speed = 1.5;
+  constructor(x, y, isBoss = false) {
+    super(x, y, isBoss ? 80 : 50, isBoss ? 80 : 50);
+    this.speed = isBoss ? 1 : 1.5;
     this.direction = Math.random() > 0.5 ? 1 : -1;
     this.shootTimer = 0;
-    this.shootInterval = 60 + Math.random() * 60;
-    this.health = 2;
+    this.shootInterval = isBoss ? 40 : 60 + Math.random() * 60;
+    this.health = isBoss ? 10 : 2;
+    this.maxHealth = this.health;
+    this.isBoss = isBoss;
   }
 
   update(canvasWidth) {
@@ -182,7 +211,7 @@ class EnemyShip extends GameObject {
     if (this.x <= 0 || this.x + this.width >= canvasWidth) {
       this.direction *= -1;
     }
-    this.y += 0.3;
+    this.y += this.isBoss ? 0.2 : 0.3;
     this.shootTimer++;
   }
 
@@ -195,24 +224,78 @@ class EnemyShip extends GameObject {
   }
 
   shoot() {
+    if (this.isBoss) {
+      return [
+        new Projectile(this.x + this.width / 3 - 2, this.y + this.height, true),
+        new Projectile(this.x + (this.width * 2/3) - 2, this.y + this.height, true)
+      ];
+    }
     return new Projectile(this.x + this.width / 2 - 2, this.y + this.height, true);
   }
 
   draw(ctx) {
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath();
-    ctx.moveTo(this.x + this.width / 2, this.y + this.height);
-    ctx.lineTo(this.x, this.y);
-    ctx.lineTo(this.x + this.width, this.y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#991b1b';
-    ctx.beginPath();
-    ctx.arc(this.x + this.width / 2, this.y + 15, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(this.x + 5, this.y - 5, 12, 6);
-    ctx.fillRect(this.x + this.width - 17, this.y - 5, 12, 6);
+    if (this.isBoss) {
+      // Nave Jefe - Más grande y amenazante
+      ctx.fillStyle = '#7c2d12';
+      ctx.beginPath();
+      ctx.moveTo(this.x + this.width / 2, this.y + this.height);
+      ctx.lineTo(this.x, this.y + 20);
+      ctx.lineTo(this.x + this.width, this.y + 20);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Alas extendidas
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(this.x - 10, this.y + 30, 20, 30);
+      ctx.fillRect(this.x + this.width - 10, this.y + 30, 20, 30);
+      
+      // Cabina del jefe
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(this.x + this.width / 2, this.y + 30, 12, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Motores del jefe
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(this.x + 10, this.y - 10, 18, 12);
+      ctx.fillRect(this.x + this.width - 28, this.y - 10, 18, 12);
+      
+      // Barra de vida del jefe
+      const healthBarWidth = this.width;
+      const healthBarHeight = 6;
+      const healthPercent = this.health / this.maxHealth;
+      
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(this.x, this.y - 15, healthBarWidth, healthBarHeight);
+      
+      ctx.fillStyle = healthPercent > 0.5 ? '#22c55e' : healthPercent > 0.25 ? '#f59e0b' : '#ef4444';
+      ctx.fillRect(this.x, this.y - 15, healthBarWidth * healthPercent, healthBarHeight);
+      
+      ctx.strokeStyle = '#9ca3af';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(this.x, this.y - 15, healthBarWidth, healthBarHeight);
+      
+      // Texto "JEFE"
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 10px Arial';
+      ctx.fillText('JEFE', this.x + this.width / 2 - 15, this.y - 18);
+    } else {
+      // Nave enemiga normal
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.moveTo(this.x + this.width / 2, this.y + this.height);
+      ctx.lineTo(this.x, this.y);
+      ctx.lineTo(this.x + this.width, this.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#991b1b';
+      ctx.beginPath();
+      ctx.arc(this.x + this.width / 2, this.y + 15, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(this.x + 5, this.y - 5, 12, 6);
+      ctx.fillRect(this.x + this.width - 17, this.y - 5, 12, 6);
+    }
   }
 
   takeDamage() {
@@ -220,6 +303,59 @@ class EnemyShip extends GameObject {
     if (this.health <= 0) {
       this.active = false;
     }
+  }
+}
+
+// Clase Item de poder (hereda de GameObject)
+class PowerUp extends GameObject {
+  constructor(x, y, type) {
+    super(x, y, 25, 25);
+    this.speed = 2;
+    this.type = type; // 'health' o 'weapon'
+    this.rotation = 0;
+  }
+
+  update() {
+    this.y += this.speed;
+    this.rotation += 0.05;
+    if (this.y > 600) this.active = false;
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+    ctx.rotate(this.rotation);
+    
+    if (this.type === 'health') {
+      // Cruz de vida (verde)
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(-3, -10, 6, 20);
+      ctx.fillRect(-10, -3, 20, 6);
+      
+      ctx.strokeStyle = '#16a34a';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-3, -10, 6, 20);
+      ctx.strokeRect(-10, -3, 20, 6);
+    } else if (this.type === 'weapon') {
+      // Estrella de poder (amarillo/naranja)
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+        const x = Math.cos(angle) * 12;
+        const y = Math.sin(angle) * 12;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    
+    ctx.restore();
   }
 }
 
@@ -259,6 +395,7 @@ class Game {
     this.projectiles = [];
     this.asteroids = [];
     this.enemyShips = [];
+    this.powerUps = [];
     this.stars = this.initStars();
     this.score = 0;
     this.level = 1;
@@ -267,6 +404,10 @@ class Game {
     this.asteroidSpawnInterval = 60;
     this.enemySpawnTimer = 0;
     this.enemySpawnInterval = 300;
+    this.powerUpSpawnTimer = 0;
+    this.powerUpSpawnInterval = 600; // Cada 10 segundos
+    this.bossActive = false;
+    this.bossDefeated = false;
     this.keys = {};
   }
 
@@ -284,7 +425,18 @@ class Game {
   }
 
   shoot() {
-    this.projectiles.push(new Projectile(this.ship.x + this.ship.width / 2 - 2, this.ship.y));
+    if (this.ship.weaponUpgrade) {
+      // Disparo doble
+      this.projectiles.push(
+        new Projectile(this.ship.x + 15, this.ship.y),
+        new Projectile(this.ship.x + this.ship.width - 15, this.ship.y)
+      );
+    } else {
+      // Disparo simple
+      this.projectiles.push(
+        new Projectile(this.ship.x + this.ship.width / 2 - 2, this.ship.y)
+      );
+    }
   }
 
   spawnAsteroid() {
@@ -295,34 +447,92 @@ class Game {
 
   spawnEnemyShip() {
     const x = Math.random() * (this.width - 50);
-    this.enemyShips.push(new EnemyShip(x, -50));
+    this.enemyShips.push(new EnemyShip(x, -50, false));
+  }
+  
+  spawnBoss() {
+    const x = this.width / 2 - 40;
+    this.enemyShips.push(new EnemyShip(x, -80, true));
+    this.bossActive = true;
+  }
+  
+  spawnPowerUp(x, y, type) {
+    this.powerUps.push(new PowerUp(x, y, type));
   }
 
   update() {
     if (this.gameOver) return;
     this.stars.forEach(star => star.update(this.height));
+    
+    // Actualizar mejora de arma
+    this.ship.updateWeaponUpgrade();
+    
     if (this.keys['ArrowLeft'] || this.keys['a']) this.ship.moveLeft();
     if (this.keys['ArrowRight'] || this.keys['d']) this.ship.moveRight(this.width);
     if (this.keys['ArrowUp'] || this.keys['w']) this.ship.moveUp();
     if (this.keys['ArrowDown'] || this.keys['s']) this.ship.moveDown(this.height);
+    
     this.projectiles = this.projectiles.filter(p => {
       p.update();
       return p.active;
     });
+    
+    // Actualizar power-ups
+    this.powerUps = this.powerUps.filter(pu => {
+      pu.update();
+      
+      // Colisión con nave
+      if (pu.collidesWith(this.ship)) {
+        if (pu.type === 'health') {
+          this.ship.heal(30);
+        } else if (pu.type === 'weapon') {
+          this.ship.upgradeWeapon();
+        }
+        return false;
+      }
+      
+      return pu.active;
+    });
+    
     if (this.level >= 6) {
+      // Verificar si es nivel de jefe (6, 11, 16, 21, etc.)
+      const shouldSpawnBoss = (this.level - 6) % 5 === 0 && !this.bossActive && !this.bossDefeated;
+      
+      if (shouldSpawnBoss) {
+        this.spawnBoss();
+      }
+      
       this.enemyShips = this.enemyShips.filter(enemy => {
         enemy.update(this.width);
+        
         if (enemy.shouldShoot()) {
-          this.projectiles.push(enemy.shoot());
+          const projectiles = enemy.shoot();
+          if (Array.isArray(projectiles)) {
+            this.projectiles.push(...projectiles);
+          } else {
+            this.projectiles.push(projectiles);
+          }
         }
+        
         if (enemy.collidesWith(this.ship)) {
-          this.ship.takeDamage(30);
+          this.ship.takeDamage(enemy.isBoss ? 50 : 30);
           return false;
         }
+        
         if (enemy.y > this.height) return false;
+        
+        // Si el jefe es derrotado
+        if (enemy.isBoss && !enemy.active) {
+          this.bossActive = false;
+          this.bossDefeated = true;
+          // Soltar item de vida donde murió el jefe
+          this.spawnPowerUp(enemy.x + enemy.width / 2 - 12, enemy.y, 'health');
+        }
+        
         return enemy.active;
       });
     }
+    
     this.asteroids = this.asteroids.filter(a => {
       a.update();
       if (a.collidesWith(this.ship)) {
@@ -332,6 +542,7 @@ class Game {
       if (a.y > this.height) return false;
       return a.active;
     });
+    
     this.projectiles.forEach(proj => {
       if (!proj.isEnemy) {
         this.asteroids.forEach(ast => {
@@ -346,7 +557,7 @@ class Game {
             proj.active = false;
             enemy.takeDamage();
             if (!enemy.active) {
-              this.score += 100;
+              this.score += enemy.isBoss ? 500 : 100;
             }
           }
         });
@@ -357,23 +568,43 @@ class Game {
         }
       }
     });
+    
     this.asteroids = this.asteroids.filter(a => a.active);
     this.projectiles = this.projectiles.filter(p => p.active);
     this.enemyShips = this.enemyShips.filter(e => e.active);
+    
     this.asteroidSpawnTimer++;
     if (this.asteroidSpawnTimer >= this.asteroidSpawnInterval) {
       this.spawnAsteroid();
       this.asteroidSpawnTimer = 0;
     }
-    if (this.level >= 6) {
+    
+    if (this.level >= 6 && !this.bossActive) {
       this.enemySpawnTimer++;
       if (this.enemySpawnTimer >= this.enemySpawnInterval) {
         this.spawnEnemyShip();
         this.enemySpawnTimer = 0;
       }
     }
+    
+    // Spawn de power-ups de arma
+    this.powerUpSpawnTimer++;
+    if (this.powerUpSpawnTimer >= this.powerUpSpawnInterval) {
+      const x = Math.random() * (this.width - 30);
+      this.spawnPowerUp(x, -30, 'weapon');
+      this.powerUpSpawnTimer = 0;
+    }
+    
+    const prevLevel = this.level;
     this.level = Math.floor(this.score / 500) + 1;
+    
+    // Resetear flag de jefe derrotado cuando cambia de nivel
+    if (this.level !== prevLevel) {
+      this.bossDefeated = false;
+    }
+    
     this.asteroidSpawnInterval = Math.max(20, 60 - this.level * 5);
+    
     if (!this.ship.active) {
       this.gameOver = true;
     }
@@ -384,6 +615,7 @@ class Game {
     this.ctx.fillRect(0, 0, this.width, this.height);
     this.stars.forEach(star => star.draw(this.ctx));
     this.asteroids.forEach(a => a.draw(this.ctx));
+    this.powerUps.forEach(pu => pu.draw(this.ctx));
     this.enemyShips.forEach(e => e.draw(this.ctx));
     this.projectiles.forEach(p => p.draw(this.ctx));
     this.ship.draw(this.ctx);
@@ -395,11 +627,26 @@ class Game {
     this.ctx.font = 'bold 20px Arial';
     this.ctx.fillText(`Puntos: ${this.score}`, 20, 30);
     this.ctx.fillText(`Nivel: ${this.level}`, 20, 60);
+    
     if (this.level >= 6) {
       this.ctx.fillStyle = '#ef4444';
       this.ctx.font = 'bold 16px Arial';
       this.ctx.fillText('¡NAVES ENEMIGAS ACTIVAS!', 20, 90);
     }
+    
+    if (this.bossActive) {
+      this.ctx.fillStyle = '#fbbf24';
+      this.ctx.font = 'bold 20px Arial';
+      this.ctx.fillText('⚠️ ¡JEFE APARECIÓ! ⚠️', this.width / 2 - 100, 50);
+    }
+    
+    if (this.ship.weaponUpgrade) {
+      this.ctx.fillStyle = '#a855f7';
+      this.ctx.font = 'bold 14px Arial';
+      const timeLeft = Math.ceil(this.ship.weaponUpgradeTimer / 60);
+      this.ctx.fillText(`⚡ ARMA DOBLE: ${timeLeft}s`, 20, 120);
+    }
+    
     const barWidth = 200;
     const barHeight = 20;
     const barX = this.width - barWidth - 20;
@@ -423,12 +670,16 @@ class Game {
     this.projectiles = [];
     this.asteroids = [];
     this.enemyShips = [];
+    this.powerUps = [];
     this.score = 0;
     this.level = 1;
     this.gameOver = false;
     this.asteroidSpawnTimer = 0;
     this.asteroidSpawnInterval = 60;
     this.enemySpawnTimer = 0;
+    this.powerUpSpawnTimer = 0;
+    this.bossActive = false;
+    this.bossDefeated = false;
   }
 }
 
@@ -610,6 +861,15 @@ export default function SpaceDefenseGame() {
                 <p style={{margin:'4px 0'}}>💎 Destruye asteroides para ganar puntos</p>
                 <p style={{margin:'4px 0'}}>💚 Mantén tu salud al máximo</p>
                 <p style={{margin:'4px 0'}}>🚨 Desde nivel 6: Destruye naves enemigas</p>
+                <p style={{margin:'4px 0'}}>👹 Niveles 6, 11, 16...: ¡Derrota al JEFE!</p>
+              </div>
+            </div>
+            <div style={{backgroundColor:'#0f172a',padding:'16px',borderRadius:'8px',border:'1px solid #334155'}}>
+              <h4 style={{color:'#fbbf24',fontSize:'16px',fontWeight:'bold',marginBottom:'8px'}}>⭐ Power-Ups</h4>
+              <div style={{color:'#d1d5db',fontSize:'13px',lineHeight:'1.8'}}>
+                <p style={{margin:'4px 0'}}>💚 <strong>Cruz Verde</strong> - Recupera +30 vida</p>
+                <p style={{margin:'4px 0'}}>⚡ <strong>Estrella</strong> - Disparo doble (10s)</p>
+                <p style={{margin:'4px 0'}}>🎁 Jefes sueltan cruz de vida al morir</p>
               </div>
             </div>
           </div>
