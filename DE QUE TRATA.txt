@@ -1,3 +1,15 @@
 Nuestro proyecto es un juego de supervivencia donde trata que somos una nave espacial que esta sobreviendo de asteroides
 y tiene que sobrevivir. LOS Elementos que utilizamos son CSS, HTML, React con vite y javaScript ( con algo de programacion
-orientada a objetos)  
+orientada a objetos).
+Los integrantes del grupo: Cristian Quisbert 6°2° COM
+			   Fernando Cortes 6°2° COM 
+ESCUELA TECNICA N°1 "Otto Krause"
+
+Algunas dudas o incovenientes que tuvimos es que queriamos usar los estilos de "tailwindcss " pero no pudimos y lo tuvimos que descartar
+y hacerlo de diferente manera.
+
+link del repositoria de github: https://github.com/Cristian2032/TP---Proyecto-Final---Genreacion-T--QUISBERT-y-CORTES
+
+link de la pagina: https://glowing-stardust-50c384.netlify.app/
+
+LAS PARTES DEL TRABAJO MAYORMENTE NOS LAS INTERCALAMOS EN ENTRE LOS DOS.
